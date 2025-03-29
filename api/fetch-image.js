@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 module.exports = async (req, res) => {
     console.log(`Request received: ${req.method} ${req.url}`); // Debugging log
     if (req.method === 'POST') {
@@ -17,6 +15,9 @@ module.exports = async (req, res) => {
         }
 
         try {
+            // Dynamically import node-fetch
+            const fetch = (await import('node-fetch')).default;
+
             // Validate URL format
             const validUrl = new URL(url);
             if (!['http:', 'https:'].includes(validUrl.protocol)) {
