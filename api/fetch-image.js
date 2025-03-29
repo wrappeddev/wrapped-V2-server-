@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
                 const imageBuffer = await response.buffer();
 
                 // Upload image to Cloudflare R2
-                const objectKey = `images/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+                const objectKey = `welcomer/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
                 const bucketName = 'public-images';
                 const uploadParams = {
                     Bucket: bucketName,
