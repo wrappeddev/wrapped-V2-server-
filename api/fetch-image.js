@@ -2,15 +2,24 @@ const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const upload = multer();
 
-// Configure Cloudflare R2 credentials
-console.log('R2_ACCESS_KEY_ID:', process.env.R2_ACCESS_KEY_ID);
-console.log('R2_SECRET_ACCESS_KEY:', process.env.R2_SECRET_ACCESS_KEY ? 'Loaded' : 'Not Loaded');
+// Validate and load Cloudflare R2 credentials
+const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+
+if (!accessKeyId || !secretAccessKey) {
+    console.error('Missing R2 credentials. Please check your .env file.');
+    process.exit(1); // Exit the process if credentials are missing
+}
+
+console.log('R2_ACCESS_KEY_ID:', accessKeyId);
+console.log('R2_SECRET_ACCESS_KEY:', secretAccessKey ? 'Loaded' : 'Not Loaded');
+
 const r2Client = new S3Client({
     region: 'auto',
     endpoint: 'https://514e56c3c68540ca4fc10652e9a98a5b.r2.cloudflarestorage.com',
     credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+        accessKeyId,
+        secretAccessKey,
     },
 });
 
