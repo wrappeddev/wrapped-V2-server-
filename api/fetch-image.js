@@ -3,6 +3,8 @@ const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const upload = multer();
 
 // Configure Cloudflare R2 credentials
+console.log('R2_ACCESS_KEY_ID:', process.env.R2_ACCESS_KEY_ID);
+console.log('R2_SECRET_ACCESS_KEY:', process.env.R2_SECRET_ACCESS_KEY ? 'Loaded' : 'Not Loaded');
 const r2Client = new S3Client({
     region: 'auto',
     endpoint: 'https://514e56c3c68540ca4fc10652e9a98a5b.r2.cloudflarestorage.com',
@@ -13,8 +15,8 @@ const r2Client = new S3Client({
 });
 
 module.exports = async (req, res) => {
-    console.log(`Request received: ${req.method} ${req.url}`); // Debugging log
-    console.log('Request headers:', req.headers); // Log headers for debugging
+    console.log(`Request received: ${req.method} ${req.url}`);
+    console.log('Request headers:', req.headers);
 
     if (req.method === 'POST') {
         // Parse multipart/form-data
@@ -25,7 +27,7 @@ module.exports = async (req, res) => {
                 return;
             }
 
-            const { url } = req.body; // Extract URL from form data
+            const { url } = req.body;
 
             if (!url) {
                 res.status(400).send('Bad Request: URL is required');
@@ -45,7 +47,7 @@ module.exports = async (req, res) => {
 
                 const response = await fetch(url);
                 if (!response.ok) {
-                    const errorBody = await response.text(); // Fetch response body for debugging
+                    const errorBody = await response.text();
                     console.error(`Failed to fetch image. Status: ${response.status}, Body: ${errorBody}`);
                     res.status(response.status).send(`Failed to fetch image: ${response.statusText}`);
                     return;
@@ -54,9 +56,8 @@ module.exports = async (req, res) => {
                 const imageBuffer = await response.buffer();
 
                 // Upload image to Cloudflare R2
-                const bucketName = 'public-images';
                 const objectKey = `images/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-
+                const bucketName = 'public-images';
                 const uploadParams = {
                     Bucket: bucketName,
                     Key: objectKey,
@@ -65,7 +66,6 @@ module.exports = async (req, res) => {
                 };
 
                 await r2Client.send(new PutObjectCommand(uploadParams));
-
                 res.status(200).send({
                     message: 'Image fetched and uploaded successfully',
                     r2Url: `https://${bucketName}.r2.cloudflarestorage.com/${objectKey}`,
@@ -74,7 +74,7 @@ module.exports = async (req, res) => {
                 if (error instanceof TypeError) {
                     res.status(400).send('Bad Request: Invalid URL format');
                 } else {
-                    console.error('Error fetching or uploading image:', error); // Log the error
+                    console.error('Error fetching or uploading image:', error);
                     res.status(500).send('Internal Server Error');
                 }
             }
