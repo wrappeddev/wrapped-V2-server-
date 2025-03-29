@@ -2,31 +2,31 @@ const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const upload = multer();
 
-// Validate and load Cloudflare R2 credentials
-const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-
-if (!accessKeyId || !secretAccessKey) {
-    console.error('Missing R2 credentials. Please check your .env file or environment variables.');
-    res.status(500).json({ error: 'R2 credentials are missing' }); // Send error response
-    return;
-}
-
-console.log('R2_ACCESS_KEY_ID:', accessKeyId);
-console.log('R2_SECRET_ACCESS_KEY:', secretAccessKey ? 'Loaded' : 'Not Loaded');
-
-const r2Client = new S3Client({
-    region: 'auto',
-    endpoint: 'https://514e56c3c68540ca4fc10652e9a98a5b.r2.cloudflarestorage.com',
-    credentials: {
-        accessKeyId,
-        secretAccessKey,
-    },
-});
-
 module.exports = async (req, res) => {
     console.log(`Request received: ${req.method} ${req.url}`);
     console.log('Request headers:', req.headers);
+
+    // Validate and load Cloudflare R2 credentials
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+
+    if (!accessKeyId || !secretAccessKey) {
+        console.error('Missing R2 credentials. Please check your .env file or environment variables.');
+        res.status(500).json({ error: 'R2 credentials are missing' }); // Send error response
+        return;
+    }
+
+    console.log('R2_ACCESS_KEY_ID:', accessKeyId);
+    console.log('R2_SECRET_ACCESS_KEY:', secretAccessKey ? 'Loaded' : 'Not Loaded');
+
+    const r2Client = new S3Client({
+        region: 'auto',
+        endpoint: 'https://514e56c3c68540ca4fc10652e9a98a5b.r2.cloudflarestorage.com',
+        credentials: {
+            accessKeyId,
+            secretAccessKey,
+        },
+    });
 
     if (req.method === 'POST') {
         // Parse multipart/form-data
