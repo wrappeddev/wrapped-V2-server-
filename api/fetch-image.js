@@ -3,6 +3,12 @@ const fetch = require('node-fetch');
 module.exports = async (req, res) => {
     console.log(`Request received: ${req.method} ${req.url}`); // Debugging log
     if (req.method === 'POST') {
+        if (!req.body) {
+            console.error('Request body is missing or not parsed');
+            res.status(400).send('Bad Request: Missing or invalid request body');
+            return;
+        }
+
         const { url } = req.body; // Extract URL from request body
 
         if (!url) {
@@ -20,6 +26,8 @@ module.exports = async (req, res) => {
 
             const response = await fetch(url);
             if (!response.ok) {
+                const errorBody = await response.text(); // Fetch response body for debugging
+                console.error(`Failed to fetch image. Status: ${response.status}, Body: ${errorBody}`);
                 res.status(response.status).send(`Failed to fetch image: ${response.statusText}`);
                 return;
             }
