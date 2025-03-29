@@ -7,8 +7,9 @@ const accessKeyId = process.env.R2_ACCESS_KEY_ID;
 const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
 if (!accessKeyId || !secretAccessKey) {
-    console.error('Missing R2 credentials. Please check your .env file.');
-    process.exit(1); // Exit the process if credentials are missing
+    console.error('Missing R2 credentials. Please check your .env file or environment variables.');
+    res.status(500).json({ error: 'R2 credentials are missing' }); // Send error response
+    return;
 }
 
 console.log('R2_ACCESS_KEY_ID:', accessKeyId);
