@@ -2,7 +2,9 @@ const express = require('express');
 const fetchImage = require('./api/fetch-image');
 
 const app = express();
-app.use(express.json()); // Middleware to parse JSON request bodies
+
+// Ensure JSON middleware is applied before defining routes
+app.use(express.json());
 
 app.post('/fetch-image', fetchImage);
 
