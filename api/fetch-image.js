@@ -11,9 +11,16 @@ module.exports = async (req, res) => {
         }
 
         try {
+            // Validate URL format
+            const validUrl = new URL(url);
+            if (!['http:', 'https:'].includes(validUrl.protocol)) {
+                res.status(400).send('Bad Request: Invalid URL protocol. Only HTTP and HTTPS are supported.');
+                return;
+            }
+
             const response = await fetch(url);
             if (!response.ok) {
-                res.status(response.status).send('Failed to fetch image from the provided URL');
+                res.status(response.status).send(`Failed to fetch image: ${response.statusText}`);
                 return;
             }
 
@@ -21,8 +28,12 @@ module.exports = async (req, res) => {
             res.setHeader('Content-Type', 'image/jpeg');
             res.status(200).send(imageBuffer);
         } catch (error) {
-            console.error('Error fetching image:', error); // Log the error
-            res.status(500).send('Internal Server Error');
+            if (error instanceof TypeError) {
+                res.status(400).send('Bad Request: Invalid URL format');
+            } else {
+                console.error('Error fetching image:', error); // Log the error
+                res.status(500).send('Internal Server Error');
+            }
         }
     } else {
         res.status(404).send('Not Found');
