@@ -78,7 +78,7 @@ module.exports = async (req, res) => {
                 await r2Client.send(new PutObjectCommand(uploadParams));
                 res.status(200).send({
                     message: 'Image fetched and uploaded successfully',
-                    r2Url: `https://${bucketName}.r2.cloudflarestorage.com/${objectKey}`,
+                    r2Url: `https://cdn.public.wrappedbot.com/images/${objectKey}`,
                 });
             } catch (error) {
                 if (error instanceof TypeError) {
