@@ -2,13 +2,18 @@ const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
     console.log(`Request received: ${req.method} ${req.url}`); // Debugging log
-    if (req.method === 'GET') {
-        const discordCdnUrl = 'https://cdn.discordapp.com/path-to-your-image.jpg'; // Replace with the actual Discord CDN URL
+    if (req.method === 'POST') {
+        const { url } = req.body; // Extract URL from request body
+
+        if (!url) {
+            res.status(400).send('Bad Request: URL is required');
+            return;
+        }
 
         try {
-            const response = await fetch(discordCdnUrl);
+            const response = await fetch(url);
             if (!response.ok) {
-                res.status(response.status).send('Failed to fetch image from Discord CDN');
+                res.status(response.status).send('Failed to fetch image from the provided URL');
                 return;
             }
 
