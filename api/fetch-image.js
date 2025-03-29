@@ -1,5 +1,7 @@
 module.exports = async (req, res) => {
     console.log(`Request received: ${req.method} ${req.url}`); // Debugging log
+    console.log('Request headers:', req.headers); // Log headers for debugging
+    console.log('Request body:', req.body); // Log body for debugging
     if (req.method === 'POST') {
         if (!req.body || typeof req.body !== 'object') {
             console.error('Request body is missing or not parsed. Ensure middleware like express.json() is used.');

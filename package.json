@@ -1,5 +1,5 @@
 {
-  "name": "wrapped-V2-server",
+  "name": "wrapped-v2-server",
   "version": "1.0.0",
   "description": "Wrapped V2 server",
   "main": "index.js",
