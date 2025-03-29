@@ -1,0 +1,16 @@
+{
+  "name": "wrapped-V2-server",
+  "version": "1.0.0",
+  "description": "Wrapped V2 server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC"
+}
