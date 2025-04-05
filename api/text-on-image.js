@@ -60,20 +60,25 @@ module.exports = async (req, res) => {
 
                 const imageBuffer = await response.buffer();
                 
+                // Create SVG text
+                const svgText = Buffer.from(`
+                <svg width="1000" height="1000">
+                  <text 
+                    x="${parseInt(x) || 50}" 
+                    y="${parseInt(y) || 50}" 
+                    font-family="Arial, sans-serif" 
+                    font-size="${parseInt(fontSize) || 40}" 
+                    fill="${fontColor || '#FFFFFF'}"
+                  >${text}</text>
+                </svg>
+                `);
+
                 // Process the image with Sharp
                 const processedImage = await sharp(imageBuffer)
                     .composite([{
-                        input: {
-                            text: {
-                                text: text,
-                                font: 'sans-serif',
-                                fontSize: parseInt(fontSize) || 40,
-                                rgba: true,
-                                color: fontColor || "#FFFFFF"
-                            }
-                        },
-                        top: parseInt(y) || 50,
-                        left: parseInt(x) || 50
+                        input: svgText,
+                        top: 0,
+                        left: 0
                     }])
                     .jpeg({ quality: 90 })
                     .toBuffer();
@@ -102,3 +107,4 @@ module.exports = async (req, res) => {
         res.status(405).json({ error: 'Method not allowed' });
     }
 };
+
