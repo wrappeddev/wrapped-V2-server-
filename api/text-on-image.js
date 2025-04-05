@@ -64,17 +64,35 @@ module.exports = async (req, res) => {
                 const imageMetadata = await sharp(imageBuffer).metadata();
                 const imageWidth = imageMetadata.width;
                 const imageHeight = imageMetadata.height;
-                
+
+                // Escape special characters for XML
+                const escapeXml = (text) => {
+                    return text
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&apos;');
+                };
+
                 // Create SVG text with matching dimensions
                 const svgText = Buffer.from(`
-                <svg width="${imageWidth}" height="${imageHeight}">
+                <svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">
+                  <style>
+                    @font-face {
+                      font-family: 'CustomFont';
+                      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf') format('truetype');
+                    }
+                    text {
+                      font-family: 'CustomFont', 'Arial', 'Helvetica', sans-serif;
+                    }
+                  </style>
                   <text 
                     x="${parseInt(x) || 50}" 
                     y="${parseInt(y) || 50}" 
-                    font-family="Arial, sans-serif" 
                     font-size="${parseInt(fontSize) || 40}" 
                     fill="${fontColor || '#FFFFFF'}"
-                  >${text}</text>
+                  >${escapeXml(text)}</text>
                 </svg>
                 `);
 
@@ -112,5 +130,6 @@ module.exports = async (req, res) => {
         res.status(405).json({ error: 'Method not allowed' });
     }
 };
+
 
 
