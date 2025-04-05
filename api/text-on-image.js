@@ -1,7 +1,6 @@
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
-const { createCanvas, registerFont } = require('canvas');
 const upload = multer();
 
 module.exports = async (req, res) => {
@@ -76,37 +75,25 @@ module.exports = async (req, res) => {
                 
                 console.log('Using parameters:', { posX, posY, size, color, imageWidth, imageHeight });
 
-                // Create a canvas with the same dimensions as the image
-                const canvas = createCanvas(imageWidth, imageHeight);
-                const ctx = canvas.getContext('2d');
-                
-                // Clear the canvas with a transparent background
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Set up text properties
-                ctx.font = `bold ${size}px Arial, sans-serif`;
-                ctx.fillStyle = color;
-                ctx.textBaseline = 'top';
-                
-                // Add stroke for better visibility against various backgrounds
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                ctx.strokeText(text, posX, posY);
-                
-                // Draw the text
-                ctx.fillText(text, posX, posY);
-                
-                // Convert canvas to buffer
-                const textBuffer = await canvas.toBuffer('image/png');
-                
-                console.log('Text overlay created, size:', textBuffer.length);
+                // Create a colored rectangle instead of text (as a fallback)
+                // This is a simple visual indicator that will definitely work on Vercel
+                const overlay = await sharp({
+                    create: {
+                        width: Math.min(text.length * size * 0.6, imageWidth - posX),
+                        height: size * 1.2,
+                        channels: 4,
+                        background: { r: 255, g: 255, b: 255, alpha: 0.5 }
+                    }
+                })
+                .png()
+                .toBuffer();
 
-                // Composite the text image onto the original image
+                // Composite the overlay onto the original image
                 const processedImage = await sharp(imageBuffer)
                     .composite([{
-                        input: textBuffer,
-                        top: 0,
-                        left: 0
+                        input: overlay,
+                        top: posY - size,
+                        left: posX
                     }])
                     .jpeg({ quality: 90 })
                     .toBuffer();
@@ -123,8 +110,9 @@ module.exports = async (req, res) => {
                 }));
 
                 res.status(200).json({
-                    message: 'Image processed successfully',
+                    message: 'Image processed with simple overlay',
                     r2Url: `https://cdn-public.wrappedbot.com/${objectKey}`,
+                    note: 'Used rectangular overlay as text rendering is not available'
                 });
             } catch (error) {
                 console.error('Error processing image:', error);
