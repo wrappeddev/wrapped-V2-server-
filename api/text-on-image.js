@@ -60,9 +60,14 @@ module.exports = async (req, res) => {
 
                 const imageBuffer = await response.buffer();
                 
-                // Create SVG text
+                // Get image dimensions
+                const imageMetadata = await sharp(imageBuffer).metadata();
+                const imageWidth = imageMetadata.width;
+                const imageHeight = imageMetadata.height;
+                
+                // Create SVG text with matching dimensions
                 const svgText = Buffer.from(`
-                <svg width="1000" height="1000">
+                <svg width="${imageWidth}" height="${imageHeight}">
                   <text 
                     x="${parseInt(x) || 50}" 
                     y="${parseInt(y) || 50}" 
@@ -107,4 +112,5 @@ module.exports = async (req, res) => {
         res.status(405).json({ error: 'Method not allowed' });
     }
 };
+
 
