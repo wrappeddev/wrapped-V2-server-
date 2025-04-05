@@ -1,6 +1,7 @@
-require('dotenv').config(); // Add this line at the top
+require('dotenv').config();
 const express = require('express');
 const fetchImage = require('./api/fetch-image');
+const textOnImage = require('./api/text-on-image');
 
 const app = express();
 
@@ -8,6 +9,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/fetch-image', fetchImage);
+app.post('/text-on-image', textOnImage);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

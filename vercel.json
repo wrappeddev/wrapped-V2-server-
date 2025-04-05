@@ -2,6 +2,7 @@
     "rewrites": [
         { "source": "/", "destination": "/index.html" },
         { "source": "/api/(.*)", "destination": "/api/$1" },
-        { "source": "/api/fetch-image", "destination": "/api/fetch-image.js" }
+        { "source": "/api/fetch-image", "destination": "/api/fetch-image.js" },
+        { "source": "/api/text-on-image", "destination": "/api/text-on-image.js" }
     ]
 }
