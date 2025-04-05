@@ -1,6 +1,7 @@
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
+const { createCanvas, registerFont } = require('canvas');
 const upload = multer();
 
 module.exports = async (req, res) => {
@@ -69,103 +70,62 @@ module.exports = async (req, res) => {
 
                 // Parse parameters with sensible defaults
                 const posX = parseInt(x) || 50;
-                const posY = parseInt(y) || 50;
+                const posY = parseInt(y) || 150;
                 const size = parseInt(fontSize) || 48;
                 const color = fontColor || '#FFFFFF'; // Default to white if not provided
                 
-                console.log('Using parameters:', { posX, posY, size, color });
+                console.log('Using parameters:', { posX, posY, size, color, imageWidth, imageHeight });
 
-                // Create a text layer with both fill and stroke for visibility
-                // Use a more compatible approach for Vercel
-                const textSvg = Buffer.from(`
-                <svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <filter id="outline" x="-20%" y="-20%" width="140%" height="140%">
-                      <feMorphology operator="dilate" radius="2" in="SourceAlpha" result="thicken" />
-                      <feFlood flood-color="#000000" result="black" />
-                      <feComposite in="black" in2="thicken" operator="in" result="outline" />
-                      <feMerge>
-                        <feMergeNode in="outline" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-                  <text 
-                    x="${posX}" 
-                    y="${posY}" 
-                    font-family="Arial, Helvetica, sans-serif" 
-                    font-size="${size}px" 
-                    font-weight="bold" 
-                    fill="${color}"
-                    filter="url(#outline)"
-                  >${text}</text>
-                </svg>
-                `);
+                // Create a canvas with the same dimensions as the image
+                const canvas = createCanvas(imageWidth, imageHeight);
+                const ctx = canvas.getContext('2d');
+                
+                // Clear the canvas with a transparent background
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Set up text properties
+                ctx.font = `bold ${size}px Arial, sans-serif`;
+                ctx.fillStyle = color;
+                ctx.textBaseline = 'top';
+                
+                // Add stroke for better visibility against various backgrounds
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.strokeText(text, posX, posY);
+                
+                // Draw the text
+                ctx.fillText(text, posX, posY);
+                
+                // Convert canvas to buffer
+                const textBuffer = await canvas.toBuffer('image/png');
+                
+                console.log('Text overlay created, size:', textBuffer.length);
 
-                console.log('SVG content:', textSvg.toString());
+                // Composite the text image onto the original image
+                const processedImage = await sharp(imageBuffer)
+                    .composite([{
+                        input: textBuffer,
+                        top: 0,
+                        left: 0
+                    }])
+                    .jpeg({ quality: 90 })
+                    .toBuffer();
 
-                try {
-                    // Attempt to use the SVG method first
-                    const processedImage = await sharp(imageBuffer)
-                        .composite([{
-                            input: textSvg,
-                            gravity: 'northwest'
-                        }])
-                        .jpeg({ quality: 90 })
-                        .toBuffer();
-                    
-                    // Upload to R2
-                    const objectKey = `text-images/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-                    const bucketName = 'public-images';
-                    
-                    await r2Client.send(new PutObjectCommand({
-                        Bucket: bucketName,
-                        Key: objectKey,
-                        Body: processedImage,
-                        ContentType: 'image/jpeg',
-                    }));
+                // Upload to R2
+                const objectKey = `text-images/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+                const bucketName = 'public-images';
+                
+                await r2Client.send(new PutObjectCommand({
+                    Bucket: bucketName,
+                    Key: objectKey,
+                    Body: processedImage,
+                    ContentType: 'image/jpeg',
+                }));
 
-                    res.status(200).json({
-                        message: 'Image processed successfully',
-                        r2Url: `https://cdn-public.wrappedbot.com/${objectKey}`,
-                    });
-                } catch (svgError) {
-                    console.error('SVG approach failed:', svgError);
-                    
-                    // Fallback to a simpler approach
-                    // Create a simple colored rectangle with text as a visual indicator of where text should be
-                    const fallbackImageBuffer = await sharp(imageBuffer)
-                        .composite([{
-                            input: {
-                                create: {
-                                    width: size * text.length,
-                                    height: size * 1.2,
-                                    channels: 4,
-                                    background: { r: 255, g: 255, b: 255, alpha: 0.7 }
-                                }
-                            },
-                            left: posX,
-                            top: posY - size
-                        }])
-                        .jpeg({ quality: 90 })
-                        .toBuffer();
-                    
-                    // Upload the fallback image
-                    const fallbackObjectKey = `text-images/fallback-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-                    
-                    await r2Client.send(new PutObjectCommand({
-                        Bucket: 'public-images',
-                        Key: fallbackObjectKey,
-                        Body: fallbackImageBuffer,
-                        ContentType: 'image/jpeg',
-                    }));
-
-                    res.status(200).json({
-                        message: 'Image processed with fallback method',
-                        r2Url: `https://cdn-public.wrappedbot.com/${fallbackObjectKey}`,
-                        note: 'Used fallback method due to SVG rendering issue'
-                    });
-                }
+                res.status(200).json({
+                    message: 'Image processed successfully',
+                    r2Url: `https://cdn-public.wrappedbot.com/${objectKey}`,
+                });
             } catch (error) {
                 console.error('Error processing image:', error);
                 res.status(500).json({ error: 'Failed to process image', details: error.message });
