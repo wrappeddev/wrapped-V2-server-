@@ -92,7 +92,10 @@ module.exports = async (req, res) => {
                         y="${parseInt(y) || 50}" 
                         font-family="Arial, Helvetica, sans-serif" 
                         font-size="${parseInt(fontSize) || 40}" 
-                        fill="${fontColor || '#FFFFFF'}"
+                        font-weight="bold"
+                        fill="${fontColor || '#FF0000'}"
+                        stroke="${fontColor === '#000000' ? '#FFFFFF' : '#000000'}"
+                        stroke-width="1"
                       >${escapeXml(text)}</text>
                     </svg>
                     `),
@@ -101,6 +104,12 @@ module.exports = async (req, res) => {
                 }])
                 .png()
                 .toBuffer();
+
+                // Add debugging information
+                console.log('Image dimensions:', imageWidth, 'x', imageHeight);
+                console.log('Text position:', parseInt(x) || 50, parseInt(y) || 50);
+                console.log('Font size:', parseInt(fontSize) || 40);
+                console.log('Font color:', fontColor || '#FF0000');
 
                 // Composite the text image onto the original image
                 const processedImage = await sharp(imageBuffer)
@@ -136,6 +145,7 @@ module.exports = async (req, res) => {
         res.status(405).json({ error: 'Method not allowed' });
     }
 };
+
 
 
 
