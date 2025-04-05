@@ -66,9 +66,10 @@ module.exports = async (req, res) => {
                         input: {
                             text: {
                                 text: text,
-                                font: 'sans',
+                                font: 'sans-serif',
                                 fontSize: parseInt(fontSize) || 40,
-                                rgba: fontColor || true
+                                rgba: true,
+                                color: fontColor || "#FFFFFF"
                             }
                         },
                         top: parseInt(y) || 50,
