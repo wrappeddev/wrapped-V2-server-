@@ -75,48 +75,57 @@ module.exports = async (req, res) => {
                         .replace(/'/g, '&apos;');
                 };
 
-                // Create a text-only image with transparent background
-                const textBuffer = await sharp({
-                    create: {
-                        width: imageWidth,
-                        height: imageHeight,
-                        channels: 4,
-                        background: { r: 0, g: 0, b: 0, alpha: 0 }
+                // Parse parameters with sensible defaults
+                const posX = parseInt(x) || 50;
+                const posY = parseInt(y) || 50;
+                const size = parseInt(fontSize) || 40;
+                const color = fontColor || '#FFFFFF'; // Default to white
+                
+                // Create a stroke color that contrasts with the text color
+                const strokeColor = color.toLowerCase() === '#ffffff' ? '#000000' : '#FFFFFF';
+
+                // Better SVG creation with proper text attributes
+                const svgBuffer = Buffer.from(`
+                <svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">
+                  <style>
+                    @font-face {
+                      font-family: 'CustomFont';
+                      src: local('Arial'), local('Helvetica'), local('sans-serif');
                     }
-                })
-                .composite([{
-                    input: Buffer.from(`
-                    <svg width="${imageWidth}" height="${imageHeight}">
-                      <text 
-                        x="${parseInt(x) || 50}" 
-                        y="${parseInt(y) || 50}" 
-                        font-family="Arial, Helvetica, sans-serif" 
-                        font-size="${parseInt(fontSize) || 40}" 
-                        font-weight="bold"
-                        fill="${fontColor || '#FF0000'}"
-                        stroke="${fontColor === '#000000' ? '#FFFFFF' : '#000000'}"
-                        stroke-width="1"
-                      >${escapeXml(text)}</text>
-                    </svg>
-                    `),
-                    top: 0,
-                    left: 0
-                }])
-                .png()
-                .toBuffer();
+                    .text {
+                      font-family: 'CustomFont', sans-serif;
+                      font-weight: bold;
+                      dominant-baseline: hanging;
+                      text-anchor: start;
+                    }
+                  </style>
+                  <text 
+                    x="${posX}" 
+                    y="${posY}" 
+                    class="text"
+                    font-size="${size}px" 
+                    fill="${color}"
+                    stroke="${strokeColor}"
+                    stroke-width="2"
+                    paint-order="stroke fill"
+                  >${escapeXml(text)}</text>
+                </svg>
+                `);
 
                 // Add debugging information
                 console.log('Image dimensions:', imageWidth, 'x', imageHeight);
-                console.log('Text position:', parseInt(x) || 50, parseInt(y) || 50);
-                console.log('Font size:', parseInt(fontSize) || 40);
-                console.log('Font color:', fontColor || '#FF0000');
+                console.log('Text position:', posX, posY);
+                console.log('Font size:', size);
+                console.log('Font color:', color);
+                console.log('Stroke color:', strokeColor);
+                console.log('SVG content:', svgBuffer.toString());
 
-                // Composite the text image onto the original image
+                // Composite the SVG onto the original image
                 const processedImage = await sharp(imageBuffer)
                     .composite([{
-                        input: textBuffer,
+                        input: svgBuffer,
                         top: 0,
-                        left: 0
+                        left: 0,
                     }])
                     .jpeg({ quality: 90 })
                     .toBuffer();
@@ -145,8 +154,3 @@ module.exports = async (req, res) => {
         res.status(405).json({ error: 'Method not allowed' });
     }
 };
-
-
-
-
-
