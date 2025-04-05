@@ -75,31 +75,37 @@ module.exports = async (req, res) => {
                         .replace(/'/g, '&apos;');
                 };
 
-                // Create SVG text with matching dimensions
-                const svgText = Buffer.from(`
-                <svg width="${imageWidth}" height="${imageHeight}" xmlns="http://www.w3.org/2000/svg">
-                  <style>
-                    @font-face {
-                      font-family: 'CustomFont';
-                      src: url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf') format('truetype');
+                // Create a text-only image with transparent background
+                const textBuffer = await sharp({
+                    create: {
+                        width: imageWidth,
+                        height: imageHeight,
+                        channels: 4,
+                        background: { r: 0, g: 0, b: 0, alpha: 0 }
                     }
-                    text {
-                      font-family: 'CustomFont', 'Arial', 'Helvetica', sans-serif;
-                    }
-                  </style>
-                  <text 
-                    x="${parseInt(x) || 50}" 
-                    y="${parseInt(y) || 50}" 
-                    font-size="${parseInt(fontSize) || 40}" 
-                    fill="${fontColor || '#FFFFFF'}"
-                  >${escapeXml(text)}</text>
-                </svg>
-                `);
+                })
+                .composite([{
+                    input: Buffer.from(`
+                    <svg width="${imageWidth}" height="${imageHeight}">
+                      <text 
+                        x="${parseInt(x) || 50}" 
+                        y="${parseInt(y) || 50}" 
+                        font-family="Arial, Helvetica, sans-serif" 
+                        font-size="${parseInt(fontSize) || 40}" 
+                        fill="${fontColor || '#FFFFFF'}"
+                      >${escapeXml(text)}</text>
+                    </svg>
+                    `),
+                    top: 0,
+                    left: 0
+                }])
+                .png()
+                .toBuffer();
 
-                // Process the image with Sharp
+                // Composite the text image onto the original image
                 const processedImage = await sharp(imageBuffer)
                     .composite([{
-                        input: svgText,
+                        input: textBuffer,
                         top: 0,
                         left: 0
                     }])
@@ -130,6 +136,7 @@ module.exports = async (req, res) => {
         res.status(405).json({ error: 'Method not allowed' });
     }
 };
+
 
 
 
