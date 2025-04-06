@@ -104,10 +104,14 @@ module.exports = async (req, res) => {
                 let discordResponse = null;
                 if (emoji === 'true') {
                     try {
-                        // Create FormData for Discord API
-                        const formData = new FormData();
-                        formData.append('name', emojiName);
-                        formData.append('image', imageBuffer.toString('base64'));
+                        // Create base64 data URL for the image
+                        const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+                        
+                        // Create JSON payload for Discord API
+                        const jsonPayload = {
+                            name: emojiName,
+                            image: base64Image
+                        };
 
                         // Upload emoji to Discord
                         const discordApiResponse = await fetch(
@@ -116,8 +120,9 @@ module.exports = async (req, res) => {
                                 method: 'POST',
                                 headers: {
                                     'Authorization': `Bot ${botToken}`,
+                                    'Content-Type': 'application/json'
                                 },
-                                body: formData
+                                body: JSON.stringify(jsonPayload)
                             }
                         );
 
