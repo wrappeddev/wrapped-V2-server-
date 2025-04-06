@@ -37,11 +37,27 @@ module.exports = async (req, res) => {
                 return;
             }
 
-            const { url } = req.body;
+            const { url, emoji, serverId, botToken, emojiName } = req.body;
 
             if (!url) {
                 res.status(400).send('Bad Request: URL is required');
                 return;
+            }
+
+            // Check if emoji is true and required parameters are provided
+            if (emoji === 'true') {
+                if (!serverId) {
+                    res.status(400).json({ error: 'Server ID is required when emoji is true' });
+                    return;
+                }
+                if (!botToken) {
+                    res.status(400).json({ error: 'Bot token is required when emoji is true' });
+                    return;
+                }
+                if (!emojiName) {
+                    res.status(400).json({ error: 'Emoji name is required when emoji is true' });
+                    return;
+                }
             }
 
             try {
@@ -66,19 +82,73 @@ module.exports = async (req, res) => {
                 const imageBuffer = await response.buffer();
 
                 // Upload image to Cloudflare R2
-                const objectKey = `welcomer/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+                let objectKey;
+                if (emoji === 'true') {
+                    objectKey = `emoji/${serverId}/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+                } else {
+                    objectKey = `welcomer/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+                }
+                
                 const bucketName = 'public-images';
                 const uploadParams = {
                     Bucket: bucketName,
                     Key: objectKey,
                     Body: imageBuffer,
-                    ContentType: 'image/jpeg',
+                    ContentType: emoji === 'true' ? 'image/png' : 'image/jpeg',
                 };
 
                 await r2Client.send(new PutObjectCommand(uploadParams));
-                res.status(200).send({
-                    message: 'Image fetched and uploaded successfully',
-                    r2Url: `https://cdn-public.wrappedbot.com/${objectKey}`,
+                const r2Url = `https://cdn-public.wrappedbot.com/${objectKey}`;
+
+                // If emoji is true, upload to Discord
+                let discordResponse = null;
+                if (emoji === 'true') {
+                    try {
+                        // Create FormData for Discord API
+                        const formData = new FormData();
+                        formData.append('name', emojiName);
+                        formData.append('image', imageBuffer.toString('base64'));
+
+                        // Upload emoji to Discord
+                        const discordApiResponse = await fetch(
+                            `https://discord.com/api/v10/guilds/${serverId}/emojis`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bot ${botToken}`,
+                                },
+                                body: formData
+                            }
+                        );
+
+                        if (!discordApiResponse.ok) {
+                            const errorText = await discordApiResponse.text();
+                            console.error('Discord API error:', errorText);
+                            discordResponse = {
+                                success: false,
+                                error: `Discord API error: ${discordApiResponse.status} ${discordApiResponse.statusText}`,
+                                details: errorText
+                            };
+                        } else {
+                            discordResponse = {
+                                success: true,
+                                data: await discordApiResponse.json()
+                            };
+                        }
+                    } catch (discordError) {
+                        console.error('Error uploading to Discord:', discordError);
+                        discordResponse = {
+                            success: false,
+                            error: 'Failed to upload emoji to Discord',
+                            details: discordError.message
+                        };
+                    }
+                }
+
+                res.status(200).json({
+                    message: emoji === 'true' ? 'Emoji image processed' : 'Image fetched and uploaded successfully',
+                    r2Url,
+                    discord: discordResponse
                 });
             } catch (error) {
                 if (error instanceof TypeError) {
